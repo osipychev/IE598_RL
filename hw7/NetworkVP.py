@@ -80,10 +80,14 @@ class NetworkVP:
         self.log_stds = tf.maximum(self.log_stds, np.log(1e-6))   # min-std to prevent numerical issues
         
         # mean network "YOUR CODE HERE"
-        self.means = 
-
-        # value network "YOUR CODE HERE"
-        self.values = 
+        self.n1 = self.dense_layer(self.obs, 64, 'dens1a1', func=tf.nn.tanh)
+        self.n2 = self.dense_layer(self.n1, 64, 'dens2a1', func=tf.nn.tanh)
+        self.means = self.dense_layer(self.n2, 2, 'dens3a1', func=tf.nn.tanh)
+        
+        # value network for critic"YOUR CODE HERE"
+        self.cn1 = self.dense_layer(self.obs, 64, 'dens1c', func=tf.nn.tanh)
+        self.cn2 = self.dense_layer(self.cn1, 64, 'dens2c', func=tf.nn.tanh)
+        self.values = self.dense_layer(self.cn2, 1, 'dens3c', func=tf.nn.tanh)
         
         self.logli = self.loglikelihood(self.actions, self.means, self.log_stds)
         self.ent = self.entropy(self.log_stds)
@@ -94,22 +98,34 @@ class NetworkVP:
         
         # value loss
         self.v_loss = tf.reduce_mean(tf.square(self.values - self.v_targets))
-
+        
+        # compute kl divergence
+        self.kl_div = self.kl(self.old_means, self.old_log_stds, self.means, self.log_stds)
+        
         self.opt = tf.train.AdamOptimizer(learning_rate=self.var_learning_rate)
         self.train_op_p = self.opt.minimize(self.p_loss, global_step=self.global_step)
         self.train_op_v = self.opt.minimize(self.v_loss, global_step=self.global_step)
+        
    
     def loglikelihood(self, actions, means, log_stds):
       # "YOUR CODE HERE"
-      pass
-    
+      stds = tf.exp(log_stds)
+      logli = - tf.log(2*np.pi)
+      logli -= tf.reduce_sum(log_stds + 1/(2 * stds**2) * (actions - means)**2,1)
+      return logli
+      
     def entropy(self, log_stds):
       # "YOUR CODE HERE"
-      pass
+      entropy1 = tf.log(tf.sqrt(2*np.pi*np.e) * tf.exp(log_stds[0]))
+      entropy2 = tf.log(tf.sqrt(2*np.pi*np.e) * tf.exp(log_stds[1]))
+      return entropy1 + entropy2
       
     def kl(self, old_means, old_log_stds, new_means, new_log_stds):
       # "YOUR CODE HERE"
-      pass
+      new_stds = tf.exp(new_log_stds)
+      old_stds = tf.exp(old_log_stds)
+      kl = new_log_stds - old_log_stds + (old_stds**2 + (old_means-new_means)**2)/(2*new_stds**2) - 1/2
+      return tf.reduce_sum(tf.reduce_sum(kl,1))
     
     def _create_tensor_board(self):
         summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
@@ -187,12 +203,14 @@ class NetworkVP:
         feed_dict.update({self.obs: x, self.advantages:adv, self.actions: a, self.old_means: a_m, self.old_log_stds: a_s, self.v_targets: y_r})
         self.sess.run(self.train_op_p, feed_dict=feed_dict)
         self.sess.run(self.train_op_v, feed_dict=feed_dict)
+        
 
     def log(self, x, y_r, adv, a, a_m, a_s):
         feed_dict = self.__get_base_feed_dict()
         feed_dict.update({self.obs: x, self.advantages:adv, self.actions: a})
         step, summary = self.sess.run([self.global_step, self.summary_op], feed_dict=feed_dict)
         self.log_writer.add_summary(summary, step)
+        
 
     def _checkpoint_filename(self, episode):
         return 'checkpoints/%s_%08d' % (self.model_name, episode)
