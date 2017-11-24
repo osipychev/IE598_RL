@@ -109,6 +109,7 @@ class ProcessAgent(Process):
             # Yizhi edit here
             action1 = self.select_action(prediction)
             action2 = self.select_action(prediction)
+            # need to modify the environment
             reward1, reward2, done = self.env.step(action1, action2)
             reward = reward1 + reward2
             reward_sum += reward1 + reward2
