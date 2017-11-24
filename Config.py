@@ -30,7 +30,8 @@ class Config:
     # Game configuration
 
     # Name of the game, with version (e.g. PongDeterministic-v0)
-    ATARI_GAME = 'LunarLanderContinuous-v2'
+    # Yizhi edit here
+    ATARI_GAME = 'Gathering'
 
     # Enable to see the trained agent in action
     PLAY_MODE = False
@@ -48,9 +49,9 @@ class Config:
     # Number of Agents
     AGENTS = 32 
     # Number of Predictors
-    PREDICTORS = 2
+    PREDICTORS = 3
     # Number of Trainers
-    TRAINERS = 2
+    TRAINERS = 3
 
     # Device
     DEVICE = 'gpu:0'
@@ -65,14 +66,23 @@ class Config:
 
     # Discount factor
     DISCOUNT = 0.99
-    GAE_LAMBDA = 1
+    GAE_LAMBDA = 1.0
     
     # Tmax
-    TIME_MAX = 512
+    TIME_MAX = 5
     
+    # Reward Clipping
+    REWARD_MIN = -1
+    REWARD_MAX = 1
+
     # Max size of the queue
-    MAX_QUEUE_SIZE = 4096
+    MAX_QUEUE_SIZE = 100
     PREDICTION_BATCH_SIZE = 128
+
+    # Input of the DNN
+    STACKED_FRAMES = 3
+    IMAGE_WIDTH = 31
+    IMAGE_HEIGHT = 11
 
     # Total number of episodes and annealing frequency
     EPISODES = 400000
@@ -83,15 +93,24 @@ class Config:
     BETA_END = 0.01
 
     # Learning rate
-    LEARNING_RATE_START = 1e-4
-    LEARNING_RATE_END = 1e-4
+    LEARNING_RATE_START = 0.0005
+    LEARNING_RATE_END = 0.0005
+
+    # RMSProp parameters
+    RMSPROP_DECAY = 0.99
+    RMSPROP_MOMENTUM = 0.0
+    RMSPROP_EPSILON = 0.1
+
+    # Dual RMSProp - we found that using a single RMSProp for the two cost function works better and faster
+    DUAL_RMSPROP = False
+    
     # Gradient clipping
     USE_GRAD_CLIP = False
     GRAD_CLIP_NORM = 40.0 
     # Epsilon (regularize policy lag in GA3C)
     LOG_EPSILON = 1e-6
     # Training min batch size - increasing the batch size increases the stability of the algorithm, but make learning slower
-    TRAINING_MIN_BATCH_SIZE = 2048
+    TRAINING_MIN_BATCH_SIZE = 100
     
     #########################################################################
     # Log and save
@@ -99,7 +118,7 @@ class Config:
     # Enable TensorBoard
     TENSORBOARD = False
     # Update TensorBoard every X training steps
-    TENSORBOARD_UPDATE_FREQUENCY = 50
+    TENSORBOARD_UPDATE_FREQUENCY = 1000
 
     # Enable to save models every SAVE_FREQUENCY episodes
     SAVE_MODELS = False
@@ -107,7 +126,7 @@ class Config:
     SAVE_FREQUENCY = 1000
     
     # Print stats every PRINT_STATS_FREQUENCY episodes
-    PRINT_STATS_FREQUENCY = 100
+    PRINT_STATS_FREQUENCY = 5
     # The window to average stats
     STAT_ROLLING_MEAN_WINDOW = 1000
 

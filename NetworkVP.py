@@ -31,12 +31,16 @@ import tensorflow as tf
 
 from Config import Config
 
+
 class NetworkVP:
-    def __init__(self, device, model_name, action_shape, obs_shape):
+    def __init__(self, device, model_name, num_actions):
         self.device = device
         self.model_name = model_name
-        self.action_shape = action_shape
-        self.obs_shape = obs_shape
+        self.num_actions = num_actions
+
+        self.img_width = Config.IMAGE_WIDTH
+        self.img_height = Config.IMAGE_HEIGHT
+        self.img_channels = Config.STACKED_FRAMES
 
         self.learning_rate = Config.LEARNING_RATE_START
         self.beta = Config.BETA_START
@@ -60,101 +64,100 @@ class NetworkVP:
                     vars = tf.global_variables()
                     self.saver = tf.train.Saver({var.name: var for var in vars}, max_to_keep=0)
                 
+
     def _create_graph(self):
-        self.obs = tf.placeholder(
-            tf.float32, [None] + list(self.obs_shape), name='observation')
+        self.x = tf.placeholder(
+            tf.float32, [None, self.img_height, self.img_width, self.img_channels], name='X')
+        self.y_r = tf.placeholder(tf.float32, [None], name='Yr')
         self.advantages = tf.placeholder(tf.float32, [None], name='advantages')
-        self.v_targets = tf.placeholder(tf.float32, [None], name='value_targets')
-        self.actions = tf.placeholder(tf.float32, [None] + list(self.action_shape), name='actions')
-        self.old_means = tf.placeholder(tf.float32, [None] + list(self.action_shape), name='old_action_means')
-        self.old_log_stds = tf.placeholder(tf.float32, [None] + list(self.action_shape), name='old_action_log_stds')
 
         self.var_beta = tf.placeholder(tf.float32, name='beta', shape=[])
         self.var_learning_rate = tf.placeholder(tf.float32, name='lr', shape=[])
-        self.global_step = tf.Variable(0, trainable=False, name='step')
-      
-        # std params
-        self.log_std_var = tf.get_variable('log_std_var', shape=(self.action_shape[0],), 
-            dtype=tf.float32, initializer=tf.constant_initializer(np.log(1.0)))
-        self.log_stds = self.param_layer(self.log_std_var, self.obs)
-        self.log_stds = tf.maximum(self.log_stds, np.log(1e-6))   # min-std to prevent numerical issues
-        
-        # mean network "YOUR CODE HERE"
-        self.n1 = self.dense_layer(self.obs, 64, 'dens1a1', func=tf.nn.tanh)
-        self.n2 = self.dense_layer(self.n1, 64, 'dens2a1', func=tf.nn.tanh)
-        self.means = self.dense_layer(self.n2, 2, 'dens3a1', func=tf.nn.tanh)
-        
-        # value network for critic"YOUR CODE HERE"
-        self.cn1 = self.dense_layer(self.obs, 64, 'dens1c', func=tf.nn.tanh)
-        self.cn2 = self.dense_layer(self.cn1, 64, 'dens2c', func=tf.nn.tanh)
-        self.values = self.dense_layer(self.cn2, 1, 'dens3c', func=tf.nn.tanh)
-        
-        self.logli = self.loglikelihood(self.actions, self.means, self.log_stds)
-        self.ent = self.entropy(self.log_stds)
 
-        # policy gradient loss
-        self.p_loss = - tf.reduce_mean(self.logli * self.advantages, axis=0)
-        self.p_loss -= self.var_beta * tf.reduce_mean(self.ent)  # entropy regularization
+        self.global_step = tf.Variable(0, trainable=False, name='step')
+
+        # Yizhi edit here
+        # As implemented in A3C paper
+        self.n1_a1 = self.conv2d_layer(self.x, 8, 16, 'conv11-agent1', strides=[1, 4, 4, 1])
+        self.n2_a1 = self.conv2d_layer(self.n1_a1, 4, 32, 'conv12-agent1', strides=[1, 2, 2, 1])
+        self.action_index1 = tf.placeholder(tf.float32, [None, self.num_actions])
+        _input1 = self.n2_a1
+
+        self.n1_a2 = self.conv2d_layer(self.x, 8, 16, 'conv11-agent2', strides=[1, 4, 4, 1])
+        self.n2_a2 = self.conv2d_layer(self.n1_a2, 4, 32, 'conv12-agent2', strides=[1, 2, 2, 1])
+        self.action_index2 = tf.placeholder(tf.float32, [None, self.num_actions])
+        _input2 = self.n2_a2
+
+        flatten_input_shape1 = _input1.get_shape()
+        nb_elements1 = flatten_input_shape1[1] * flatten_input_shape1[2] * flatten_input_shape1[3]
+
+        flatten_input_shape2 = _input2.get_shape()
+        nb_elements2 = flatten_input_shape2[1] * flatten_input_shape2[2] * flatten_input_shape2[3]
+
+        self.flat1 = tf.reshape(_input1, shape=[-1, nb_elements1._value])
+        self.d1_a1 = self.dense_layer(self.flat1, 256, 'dense1-agent1')
+
+        self.flat2 = tf.reshape(_input2, shape=[-1, nb_elements2._value])
+        self.d1_a2 = self.dense_layer(self.flat2, 256, 'dense1-agent2')
+
+        self.d1 = tf.concat([self.d1_a1, self.d1_a2], axis=1)
+
+        self.logits_v = tf.squeeze(self.dense_layer(self.d1, 1, 'logits_v', func=None), axis=[1])
+        self.cost_v = 0.5 * tf.reduce_sum(tf.square(self.y_r - self.logits_v), axis=0)
+
+        self.logits_p1 = self.dense_layer(self.d1_a1, self.num_actions, 'logits_p-agent1', func=None)
+        self.logits_p2 = self.dense_layer(self.d1_a2, self.num_actions, 'logits_p-agent2', func=None)
+
+        self.softmax_p1 = (tf.nn.softmax(self.logits_p1) + Config.MIN_POLICY) / (1.0 + Config.MIN_POLICY * self.num_actions)
+        self.softmax_p2 = (tf.nn.softmax(self.logits_p2) + Config.MIN_POLICY) / (1.0 + Config.MIN_POLICY * self.num_actions)
+        self.selected_action_prob1 = tf.reduce_sum(self.softmax_p1 * self.action_index1, axis=1)
+        self.selected_action_prob2 = tf.reduce_sum(self.softmax_p2 * self.action_index2, axis=1)
+
+        self.cost_p1 = tf.log(tf.maximum(self.selected_action_prob1, self.log_epsilon)) \
+                            * self.advantages
+        self.cost_p1 += -1 * self.var_beta * \
+                            tf.reduce_sum(tf.log(tf.maximum(self.softmax_p1, self.log_epsilon)) * self.softmax_p1, axis=1)
+
+        self.cost_p2 = tf.log(tf.maximum(self.selected_action_prob2, self.log_epsilon)) \
+                            * self.advantages
+        self.cost_p2 += -1 * self.var_beta * \
+                            tf.reduce_sum(tf.log(tf.maximum(self.softmax_p2, self.log_epsilon)) * self.softmax_p2, axis=1)
         
-        # value loss
-        self.v_loss = tf.reduce_mean(tf.square(self.values - self.v_targets))
+        self.cost_p1 = -tf.reduce_sum(self.cost_p1, axis=0)
+        self.cost_p2 = -tf.reduce_sum(self.cost_p2, axis=0)
         
-        # compute kl divergence
-        self.kl_div = self.kl(self.old_means, self.old_log_stds, self.means, self.log_stds)
-        
-        self.opt = tf.train.AdamOptimizer(learning_rate=self.var_learning_rate)
-        self.train_op_p = self.opt.minimize(self.p_loss, global_step=self.global_step)
-        self.train_op_v = self.opt.minimize(self.v_loss, global_step=self.global_step)
-        
-   
-    def loglikelihood(self, actions, means, log_stds):
-      # "YOUR CODE HERE"
-      stds = tf.exp(log_stds)
-      logli = - tf.log(2*np.pi)
-      logli -= tf.reduce_sum(log_stds + 1/(2 * stds**2) * (actions - means)**2,1)
-      return logli
-      
-    def entropy(self, log_stds):
-      # "YOUR CODE HERE"
-      entropy1 = tf.log(tf.sqrt(2*np.pi*np.e) * tf.exp(log_stds[0]))
-      entropy2 = tf.log(tf.sqrt(2*np.pi*np.e) * tf.exp(log_stds[1]))
-      return entropy1 + entropy2
-      
-    def kl(self, old_means, old_log_stds, new_means, new_log_stds):
-      # "YOUR CODE HERE"
-      new_stds = tf.exp(new_log_stds)
-      old_stds = tf.exp(old_log_stds)
-      kl = new_log_stds - old_log_stds + (old_stds**2 + (old_means-new_means)**2)/(2*new_stds**2) - 1/2
-      return tf.reduce_sum(tf.reduce_sum(kl,1))
-    
+        self.opt = tf.train.RMSPropOptimizer(
+                        learning_rate=self.var_learning_rate,
+                        decay=Config.RMSPROP_DECAY,
+                        momentum=Config.RMSPROP_MOMENTUM,
+                        epsilon=Config.RMSPROP_EPSILON)
+
+        self.train_op_p1 = self.opt.minimize(self.cost_p1, global_step=self.global_step)
+        self.train_op_p2 = self.opt.minimize(self.cost_p2, global_step=self.global_step)
+        self.train_op_v = self.opt.minimize(self.cost_v, global_step=self.global_step)
+        self.train_op = [self.train_op_p1, self.train_op_p2, self.train_op_v]
+
     def _create_tensor_board(self):
         summaries = tf.get_collection(tf.GraphKeys.SUMMARIES)
-        summaries.append(tf.summary.scalar("Policy Loss", self.p_loss))
-        #summaries.append(tf.summary.scalar("LearningRate", self.var_learning_rate))
-        #summaries.append(tf.summary.scalar("Beta", self.var_beta))
+        summaries.append(tf.summary.scalar("Pcost_advantage", self.cost_p_1_agg))
+        summaries.append(tf.summary.scalar("Pcost_entropy", self.cost_p_2_agg))
+        summaries.append(tf.summary.scalar("Pcost", self.cost_p))
+        summaries.append(tf.summary.scalar("Vcost", self.cost_v))
+        summaries.append(tf.summary.scalar("LearningRate", self.var_learning_rate))
+        summaries.append(tf.summary.scalar("Beta", self.var_beta))
         for var in tf.trainable_variables():
             summaries.append(tf.summary.histogram("weights_%s" % var.name, var))
 
-        summaries.append(tf.summary.histogram("activation_h1", self.h1))
-        summaries.append(tf.summary.histogram("activation_h2", self.h2)) 
-        summaries.append(tf.summary.histogram("advantages", self.advantages))
-        summaries.append(tf.summary.histogram("log_likelihood", self.logli))
-        summaries.append(tf.summary.histogram("entropy", self.ent))
-        summaries.append(tf.summary.histogram("policy_means", self.means))
-        summaries.append(tf.summary.histogram("policy_log_stds", self.log_stds))
-        summaries.append(tf.summary.histogram("observations", self.obs))
-        
+        summaries.append(tf.summary.histogram("activation_n1", self.n1))
+        summaries.append(tf.summary.histogram("activation_n2", self.n2))
+        summaries.append(tf.summary.histogram("activation_d2", self.d1))
+        summaries.append(tf.summary.histogram("activation_v", self.logits_v))
+        summaries.append(tf.summary.histogram("activation_p", self.softmax_p))
+
         self.summary_op = tf.summary.merge(summaries)
         self.log_writer = tf.summary.FileWriter("logs/%s" % self.model_name, self.sess.graph)
 
-    def param_layer(self, param, input):
-        ndim = input.get_shape().ndims
-        reshaped_param = tf.reshape(param, (1,) * (ndim - 1) + tuple(param.get_shape().as_list()))
-        tile_arg = tf.concat([tf.shape(input)[:ndim - 1], [1]], 0)
-        tiled = tf.tile(reshaped_param, tile_arg)
-        return tiled
-
-    def dense_layer(self, input, out_dim, name, func=tf.nn.tanh):
+    def dense_layer(self, input, out_dim, name, func=tf.nn.relu):
         in_dim = input.get_shape().as_list()[-1]
         d = 1.0 / np.sqrt(in_dim)
         with tf.variable_scope(name):
@@ -194,23 +197,33 @@ class NetworkVP:
         step = self.sess.run(self.global_step)
         return step
 
-    def predict_p_and_v(self, x):
-        means, log_stds, values = self.sess.run([self.means, self.log_stds, self.values], feed_dict={self.obs: x})
-        return means, log_stds, values.reshape(-1)
-    
-    def train(self, x, y_r, adv, a, a_m, a_s, trainer_id):
-        feed_dict = self.__get_base_feed_dict()
-        feed_dict.update({self.obs: x, self.advantages:adv, self.actions: a, self.old_means: a_m, self.old_log_stds: a_s, self.v_targets: y_r})
-        self.sess.run(self.train_op_p, feed_dict=feed_dict)
-        self.sess.run(self.train_op_v, feed_dict=feed_dict)
-        
+    def predict_single(self, x):
+        return self.predict_p(x[None, :])
 
-    def log(self, x, y_r, adv, a, a_m, a_s):
+    def predict_v(self, x):
+        prediction = self.sess.run(self.logits_v, feed_dict={self.x: x})
+        return prediction
+
+    def predict_p(self, x):
+        prediction1 = self.sess.run(self.softmax_p1, feed_dict={self.x: x})
+        prediction2 = self.sess.run(self.softmax_p2, feed_dict={self.x: x})
+        return prediction1, prediction2
+    
+    def predict_p_and_v(self, x):
+        return self.sess.run([self.softmax_p1, self.softmax_p2, self.logits_v], feed_dict={self.x: x})
+    
+    def train(self, x, y_r, adv, a1, a2, trainer_id):
+        # Yizhi edit here
         feed_dict = self.__get_base_feed_dict()
-        feed_dict.update({self.obs: x, self.advantages:adv, self.actions: a})
+        feed_dict.update({self.x: x, self.y_r: y_r, self.advantages: adv, self.action_index1: a1, self.action_index2: a2})
+        self.sess.run(self.train_op, feed_dict=feed_dict)
+
+    def log(self, x, y_r, adv, a1, a2):
+        # Yizhi edit here
+        feed_dict = self.__get_base_feed_dict()
+        feed_dict.update({self.x: x, self.y_r: y_r, self.advantages: adv, self.action_index1: a1, self.action_index2: a2})
         step, summary = self.sess.run([self.global_step, self.summary_op], feed_dict=feed_dict)
         self.log_writer.add_summary(summary, step)
-        
 
     def _checkpoint_filename(self, episode):
         return 'checkpoints/%s_%08d' % (self.model_name, episode)

@@ -57,20 +57,25 @@ class ProcessAgent(Process):
     @staticmethod
     def _accumulate_rewards(experiences, discount_factor, gae_lambda, terminal_reward):
         reward_sum = terminal_reward
+        delta_sum = 0
         for t in reversed(range(0, len(experiences)-1)):
             r = np.clip(experiences[t].reward, Config.REWARD_MIN, Config.REWARD_MAX)
             reward_sum = discount_factor * reward_sum + r
             experiences[t].reward = reward_sum
-            experiences[t].advantage = reward_sum - experiences[t].value
+            delta = r + discount_factor * experiences[t+1].value - experiences[t].value
+            delta_sum = discount_factor * gae_lambda * delta_sum + delta
+            experiences[t].advantage = delta_sum
 
         return experiences[:-1]
 
     def convert_data(self, experiences):
+        # Yizhi edit here
         x_ = np.array([exp.state for exp in experiences])
         r_ = np.array([exp.reward for exp in experiences])
         adv_ = np.array([exp.advantage for exp in experiences])
-        a_ = np.eye(self.num_actions)[np.array([exp.action for exp in experiences])].astype(np.float32)
-        return x_, r_, adv_, a_
+        a1_ = np.eye(self.num_actions)[np.array([exp.action1 for exp in experiences])].astype(np.float32)
+        a2_ = np.eye(self.num_actions)[np.array([exp.action2 for exp in experiences])].astype(np.float32)
+        return x_, r_, adv_, a1_, a2_
 
     def predict(self, state):
         # put the state in the prediction q
@@ -101,10 +106,13 @@ class ProcessAgent(Process):
                 continue
 
             prediction, value = self.predict(self.env.current_state)
-            action = self.select_action(prediction)
-            reward, done = self.env.step(action)
-            reward_sum += reward
-            exp = Experience(self.env.previous_state, action, prediction, value, reward, done)
+            # Yizhi edit here
+            action1 = self.select_action(prediction)
+            action2 = self.select_action(prediction)
+            reward1, reward2, done = self.env.step(action1, action2)
+            reward = reward1 + reward2
+            reward_sum += reward1 + reward2
+            exp = Experience(self.env.previous_state, action1, action2, prediction, value, reward, done)
             experiences.append(exp)
 
             if done or time_count == Config.TIME_MAX:
@@ -112,8 +120,9 @@ class ProcessAgent(Process):
 
                 updated_exps = ProcessAgent._accumulate_rewards(experiences,
                     self.discount_factor, self.gae_lambda, terminal_reward)
-                x_, r_, adv_, a_ = self.convert_data(updated_exps)
-                yield x_, r_, adv_, a_, reward_sum
+                # Yizhi edit here
+                x_, r_, adv_, a1_, a2_ = self.convert_data(updated_exps)
+                yield x_, r_, adv_, a1_, a2_, reward_sum
 
                 # reset the tmax count
                 time_count = 0
@@ -131,8 +140,9 @@ class ProcessAgent(Process):
         while self.exit_flag.value == 0:
             total_reward = 0
             total_length = 0
-            for x_, r_, adv_, a_, reward_sum in self.run_episode():
+            # Yizhi edit here
+            for x_, r_, adv_, a1_, a2_, reward_sum in self.run_episode():
                 total_reward += reward_sum
                 total_length += len(r_) + 1  # +1 for last frame that we drop
-                self.training_q.put((x_, r_, adv_, a_))
+                self.training_q.put((x_, r_, adv_, a1_, a2_))
             self.episode_log_q.put((datetime.now(), total_reward, total_length))

@@ -24,44 +24,35 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-if sys.version_info >= (3,0):
-    from queue import Queue
-else:
-    from Queue import Queue
-
-import numpy as np
-import scipy.misc as misc
-
-from Config import Config
-from GameManager import GameManager
+import gym
+from MAS_Gathering import GameEnv
 
 
-class Environment:
-    def __init__(self):
-        self.game = GameManager(Config.ATARI_GAME, display=Config.PLAY_MODE)
-        self.current_state = None
-        self.total_reward = 0
+class GameManager:
+    def __init__(self, game_name, display):
+        self.game_name = game_name
+        self.display = display
+
+        # Yizhi edit here
+        # self.env = gym.make(game_name)
+        self.env = GameEnv()
         self.reset()
 
-    @property
-    def action_shape(self):
-      return self.game.env.action_space.shape
-
-    @property
-    def obs_shape(self):
-      return self.game.env.observation_space.shape
-
-    @property
-    def name(self):
-      return self.game.env.spec._env_name
-  
     def reset(self):
-        self.total_reward = 0
-        self.current_state = self.game.reset()
-    
-    def step(self, action):
-        observation, reward, done, _ = self.game.step(action)
-        self.current_state = observation
-        self.total_reward += reward
-        return reward, done
+        observation = self.env.reset()
+        return observation
+
+    def step(self, action1, action2):
+        self._update_display()
+        # Yizhi edit here
+        # observation, reward, done, info = self.env.step(action)
+        # need to modify the environment
+        info = None
+        observation, reward1, reward2, done = self.env.move(action1, action2)
+        return observation, reward1, reward2, done, info
+
+    def _update_display(self):
+        if self.display:
+            # Yizhi edit here
+            # self.env.render()
+            self.env.render_env()

@@ -24,12 +24,36 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-class Experience:
-    def __init__(self, state, action, prediction, value, reward, done):
-        self.state = state
-        self.action = action
-        self.prediction = prediction
-        self.value = value
-        self.reward = reward
-        self.done = done
-        self.advantage = 0
+from threading import Thread
+import numpy as np
+
+from Config import Config
+
+
+class ThreadTrainer(Thread):
+    def __init__(self, server, id):
+        super(ThreadTrainer, self).__init__()
+        self.setDaemon(True)
+
+        self.id = id
+        self.server = server
+        self.exit_flag = False
+
+    def run(self):
+        while not self.exit_flag:
+            batch_size = 0
+            while batch_size <= Config.TRAINING_MIN_BATCH_SIZE:
+                # Yizhi edit here
+                x_, r_, adv_, a1_, a2_ = self.server.training_q.get()
+                if batch_size == 0:
+                    x__ = x_; r__ = r_; adv__ = adv_; a1__ = a1_; a2__ = a2_
+                else:
+                    x__ = np.concatenate((x__, x_))
+                    r__ = np.concatenate((r__, r_))
+                    adv__ = np.concatenate((adv__, adv_))
+                    a1__ = np.concatenate((a1__, a1_))
+                    a2__ = np.concatenate((a2__, a2_))
+                batch_size += x_.shape[0]
+            
+            if Config.TRAIN_MODELS:
+                self.server.train_model(x__, r__, adv__, a1__, a2__, self.id)
