@@ -100,7 +100,7 @@ class LunarLanderMarl(gym.Env):
             self.action_space = spaces.Box(-1, +1, (4,)) #two agents 2 actions each //spaces.Box(-1, +1, (2,)) 
         else:
             # Nop, fire left engine, main engine, right engine
-            self.action_space = spaces.Discrete(8) # //spaces.Discrete(4)
+            self.action_space = spaces.Discrete(16) # //spaces.Discrete(4)
 
         self._reset()
 
@@ -274,7 +274,7 @@ class LunarLanderMarl(gym.Env):
 
         self.drawlist = [self.lander_a1] + self.legs_a1 + [self.lander_a2] + self.legs_a2
 
-        return self._step(np.array([0,0]) if self.continuous else 0)[0]
+        return self._step(np.array([0,0,0,0]) if self.continuous else 0)[0]
 
     def _create_particle(self, mass, x, y, ttl):
         p = self.world.CreateDynamicBody(
@@ -300,11 +300,15 @@ class LunarLanderMarl(gym.Env):
 
 
     def _step(self, action):
-        #assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
+        assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
 
-        if (self.continuous and action[0] > 0.0):
+        if self.continuous:
             self.lander_a1 = self._agent_step(self.lander_a1,[action[0],action[1]])
             self.lander_a2 = self._agent_step(self.lander_a2,[action[2],action[3]])
+        else:
+            self.lander_a1 = self._agent_step(self.lander_a1,action/4)
+            self.lander_a2 = self._agent_step(self.lander_a2,action%4)
+            #print('agent1: %d, agent2: %d'%(action/4,action%4))
         
         self.world.Step(1.0/FPS, 6*30, 2*30)
         pos1 = self.lander_a1.position
