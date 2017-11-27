@@ -82,7 +82,7 @@ class NetworkVP:
         # mean network "YOUR CODE HERE"
         self.n1 = self.dense_layer(self.obs, 64, 'dens1a1', func=tf.nn.tanh)
         self.n2 = self.dense_layer(self.n1, 64, 'dens2a1', func=tf.nn.tanh)
-        self.means = self.dense_layer(self.n2, 2, 'dens3a1', func=tf.nn.tanh)
+        self.means = self.dense_layer(self.n2, 4, 'dens3a1', func=tf.nn.tanh)
         
         # value network for critic"YOUR CODE HERE"
         self.cn1 = self.dense_layer(self.obs, 64, 'dens1c', func=tf.nn.tanh)

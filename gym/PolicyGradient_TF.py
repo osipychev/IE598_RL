@@ -102,7 +102,7 @@ session.run(init)
 
 
 
-env = gym.make("Pong-v0")
+env = gym.make("LunarLanderMarl-v2")
 observation = env.reset()
 prev_x = None # used in computing the difference frame
 xs,As,drs = [],[],[]
