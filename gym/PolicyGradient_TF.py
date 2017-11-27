@@ -7,15 +7,8 @@ import time
 
 LR = 1e-4
 
-# hyperparameters
-num_channels1 = 16
-num_channels2 = 32
-
-#num_channels1 = 64
-#num_channels2 = 128
-
-num_H1 = 10
-num_H2 = 100
+num_H1 = 64
+num_H2 = 64
 eps0 = 1e-8
 
 
@@ -37,16 +30,16 @@ np.random.seed()
 
 
 
-def prepro(I):
-  """ prepro 210x160x3 uint8 frame into 6400 (80x80) 1D float vector """
-  I = I[35:195] # crop
-  I = I[::2,::2,0:1] # downsample by factor of 2
-  I[I == 144] = 0 # erase background (background type 1)
-  I[I == 109] = 0 # erase background (background type 2)
-  I[I != 0] = 1 # everything else (paddles, ball) just set to 1
-  I2 = np.zeros( (1, D, D, 1) )
-  I2[0,:] = I
-  return I2
+##def prepro(I):
+##  """ prepro 210x160x3 uint8 frame into 6400 (80x80) 1D float vector """
+##  I = I[35:195] # crop
+##  I = I[::2,::2,0:1] # downsample by factor of 2
+##  I[I == 144] = 0 # erase background (background type 1)
+##  I[I == 109] = 0 # erase background (background type 2)
+##  I[I != 0] = 1 # everything else (paddles, ball) just set to 1
+##  I2 = np.zeros( (1, D, D, 1) )
+##  I2[0,:] = I
+##  return I2
 
 
 
@@ -62,28 +55,37 @@ def discount_rewards(r):
   return discounted_r
 
 #inputs
-x0 = tf.placeholder(tf.float32, shape=[None, 80, 80,1])
+#x0 = tf.placeholder(tf.float32, shape=[None, 80, 80,1])
+x0 = tf.placeholder(tf.float32, shape=[None, 16])
 #rewards
 R = tf.placeholder(tf.float32, shape=[None])
 #actions
 A = tf.placeholder(tf.int32, shape=[None])
 
-W1 = tf.Variable(tf.random_uniform([8,8,1,num_channels1], -1.0, 1.0)/np.sqrt(8*8))
-W2 = tf.Variable(tf.random_uniform([8,8,num_channels1,num_channels2], -1.0, 1.0)/np.sqrt(8*8*num_channels1))
-W3 = tf.Variable(tf.random_uniform([8,8,num_channels2,num_channels2], -1.0, 1.0)/np.sqrt(8*8*num_channels2))
-W4 = tf.Variable(tf.random_uniform([5*5*num_channels2,num_H1], -1.0, 1.0)/np.sqrt(5*5*num_channels2))
-W5 = tf.Variable(tf.random_uniform([num_H1, num_H2], -1.0, 1.0)/np.sqrt(num_H1))
-W6 = tf.Variable(tf.random_uniform([num_H2, 2], -1.0, 1.0)/np.sqrt(num_H2))
+#W1 = tf.Variable(tf.random_uniform([8,8,1,num_channels1], -1.0, 1.0)/np.sqrt(8*8))
+#W2 = tf.Variable(tf.random_uniform([8,8,num_channels1,num_channels2], -1.0, 1.0)/np.sqrt(8*8*num_channels1))
+#W3 = tf.Variable(tf.random_uniform([8,8,num_channels2,num_channels2], -1.0, 1.0)/np.sqrt(8*8*num_channels2))
+#W4 = tf.Variable(tf.random_uniform([5*5*num_channels2,num_H1], -1.0, 1.0)/np.sqrt(5*5*num_channels2))
+#W5 = tf.Variable(tf.random_uniform([num_H1, num_H2], -1.0, 1.0)/np.sqrt(num_H1))
+#W6 = tf.Variable(tf.random_uniform([num_H2, 2], -1.0, 1.0)/np.sqrt(num_H2))
+W1 = tf.Variable(tf.random_uniform([16, num_H1], -1.0, 1.0)/np.sqrt(16))
+W2 = tf.Variable(tf.random_uniform([num_H1, num_H2], -1.0, 1.0)/np.sqrt(64))
+W3 = tf.Variable(tf.random_uniform([num_H2, 16], -1.0, 1.0)/np.sqrt(64))
 
-C1 =  tf.nn.relu( tf.nn.conv2d(x0, W1, strides = [1,4,4,1], padding = "SAME")    )
-C2 =   tf.nn.relu( tf.nn.conv2d(C1, W2, strides = [1,4,4,1], padding = "SAME")   )
-C3 =  tf.nn.relu( tf.nn.conv2d(C2, W3, strides = [1,1,1,1], padding = "SAME")   )
+
+#C1 =  tf.nn.relu( tf.nn.conv2d(x0, W1, strides = [1,4,4,1], padding = "SAME")    )
+#C2 =   tf.nn.relu( tf.nn.conv2d(C1, W2, strides = [1,4,4,1], padding = "SAME")   )
+#C3 =  tf.nn.relu( tf.nn.conv2d(C2, W3, strides = [1,1,1,1], padding = "SAME")   )
 #P1 = tf.nn.avg_pool(C2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
 
-P1_flat =  tf.reshape(C3, [-1, 5*5*num_channels2])
-H1 = tf.nn.relu( tf.matmul(P1_flat, W4 )    )
-H2 =  tf.nn.relu(   tf.matmul(H1, W5)    )
-u = tf.matmul(H2, W6) 
+#P1_flat =  tf.reshape(C3, [-1, 5*5*num_channels2])
+#H1 = tf.nn.relu( tf.matmul(P1_flat, W4 )    )
+#H2 =  tf.nn.relu(   tf.matmul(H1, W5)    )
+#u = tf.matmul(H2, W6) 
+
+H1 = tf.nn.tanh( tf.matmul(x0, W1 )    )
+H2 = tf.nn.tanh( tf.matmul(H1, W2 )    )
+u = tf.matmul(H2, W3) 
 
 p = tf.nn.softmax(u)
 
@@ -114,29 +116,34 @@ episode_number = 0
 time0 = time.time()
 while (episode_number < episode_limit) :
   #print("check")
-#  if render: env.render()
+  if episode_number%500==0: env.render()
 
   # preprocess the observation, set input to network to be difference image
-  cur_x = prepro(observation)
-  x = cur_x - prev_x if prev_x is not None else np.zeros((1,D,D,1) )
-  prev_x = cur_x
+#  cur_x = prepro(observation)
+#  x = cur_x - prev_x if prev_x is not None else np.zeros((1,D,D,1) )
+#  prev_x = cur_x
   
   # forward the policy network and sample an action from the returned probability
-  x0000 = np.zeros( (2,D,D,1) )
+#  x0000 = np.zeros( (2,D,D,1) )
  
-  W1_np = session.run(W1)
-  C2_np = session.run(C2, feed_dict={x0: x0000} )
+#  W1_np = session.run(W1)
+#  C2_np = session.run(C2, feed_dict={x0: x0000} )
 
-  C3_np = session.run(C3, feed_dict={x0:x} )
+#  C3_np = session.run(C3, feed_dict={x0:x} )
   
-  aprob = session.run(p, feed_dict={x0: x} ) 
+#  aprob = session.run(p, feed_dict={x0: x} )
+  x =  np.zeros( (1, 16) )
+  x[0,:] = observation[:]
+  aprob = session.run(p, feed_dict={x0: x} )
   
-  action = 2 if np.random.uniform() < aprob[0][0] else 3 # roll the dice!
+  conf = np.max(aprob)
+  action = np.argmax(aprob) if np.random.uniform() < conf else np.random.randint(0,15) # roll the dice!
 
   # record various intermediates (needed later for backprop)
   xs.append(x) # observation
 
-  y = 0 if action == 2 else 1 # a "fake label"
+  #y = 0 if action == 2 else 1 # a "fake label"
+  y = action
   
   As.append(y)
     

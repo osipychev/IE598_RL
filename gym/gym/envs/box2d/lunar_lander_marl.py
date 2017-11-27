@@ -60,15 +60,25 @@ class ContactDetector(contactListener):
         contactListener.__init__(self)
         self.env = env
     def BeginContact(self, contact):
-        if self.env.lander_a1==contact.fixtureA.body or self.env.lander_a1==contact.fixtureB.body:
+        if (self.env.lander_a1==contact.fixtureA.body or self.env.lander_a1==contact.fixtureB.body):
+            self.env.game_over_a1 = True
+        if (self.env.lander_a2==contact.fixtureA.body or self.env.lander_a2==contact.fixtureB.body):
+            self.env.game_over_a2 = True
+        if (self.env.game_over_a1 and self.env.game_over_a2):
             self.env.game_over = True
+            self.env.game_over_a1 = False
+            self.env.game_over_a2 = False
         for i in range(2):
             if self.env.legs_a1[i] in [contact.fixtureA.body, contact.fixtureB.body]:
                 self.env.legs_a1[i].ground_contact = True
+            if self.env.legs_a2[i] in [contact.fixtureA.body, contact.fixtureB.body]:
+                self.env.legs_a2[i].ground_contact = True
     def EndContact(self, contact):
         for i in range(2):
             if self.env.legs_a1[i] in [contact.fixtureA.body, contact.fixtureB.body]:
                 self.env.legs_a1[i].ground_contact = False
+            if self.env.legs_a2[i] in [contact.fixtureA.body, contact.fixtureB.body]:
+                self.env.legs_a2[i].ground_contact = False
 
 class LunarLanderMarl(gym.Env):
     metadata = {
@@ -131,6 +141,8 @@ class LunarLanderMarl(gym.Env):
         self.world.contactListener_keepref = ContactDetector(self)
         self.world.contactListener = self.world.contactListener_keepref
         self.game_over = False
+        self.game_over_a1 = False
+        self.game_over_a2 = False
         self.prev_shaping = None
 
         W = VIEWPORT_W/SCALE
@@ -177,7 +189,7 @@ class LunarLanderMarl(gym.Env):
                 maskBits=0x001,  # collide only with ground
                 restitution=0.0) # 0.99 bouncy
                 )
-        self.lander_a1.color1 = (0.5,0.4,0.9)
+        self.lander_a1.color1 = (0.4,0.5,0.9)
         self.lander_a1.color2 = (0.3,0.3,0.5)
         self.lander_a1.ApplyForceToCenter( (
             self.np_random.uniform(-INITIAL_RANDOM, INITIAL_RANDOM),
