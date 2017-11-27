@@ -75,8 +75,8 @@ class Config:
     PREDICTION_BATCH_SIZE = 128
 
     # Total number of episodes and annealing frequency
-    EPISODES = 400000
-    ANNEALING_EPISODE_COUNT = 400000
+    EPISODES = 10000
+    ANNEALING_EPISODE_COUNT = 10000
 
     # Entropy regualrization hyper-parameter
     BETA_START = 0.01
