@@ -7,14 +7,12 @@ import time
 
 LR = 1e-4
 
-num_H1 = 64
-num_H2 = 64
+num_H1 = 128
+num_H2 = 128
 eps0 = 1e-8
 
 
 episode_limit = 10000
-
-
 
 batch_size = 1 # every how many episodes to do a param update?
 #learning_rate = 1e-4
@@ -26,9 +24,6 @@ render = False
 D = 80  # input dimensionality: 80x80 grid
 
 np.random.seed()
-    
-
-
 
 ##def prepro(I):
 ##  """ prepro 210x160x3 uint8 frame into 6400 (80x80) 1D float vector """
@@ -136,8 +131,12 @@ while (episode_number < episode_limit) :
   x[0,:] = observation[:]
   aprob = session.run(p, feed_dict={x0: x} )
   
-  conf = np.max(aprob)
-  action = np.argmax(aprob) if np.random.uniform() < conf else np.random.randint(0,15) # roll the dice!
+  cum_sum = np.cumsum(aprob)
+  r = np.random.uniform()
+  action = 0
+  for i in range(0,len(cum_sum)):
+    action = i
+    if (r < cum_sum[i]): break
 
   # record various intermediates (needed later for backprop)
   xs.append(x) # observation

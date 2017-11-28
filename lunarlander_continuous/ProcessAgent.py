@@ -85,12 +85,12 @@ class ProcessAgent(Process):
         as2_ = np.array([exp.action_log_std2 for exp in experiences])
         return x1_, x2_, r_, adv_, a1_, a2_, am1_, am2_, as1_, as2_
     
-    def predict(self, state):
+    def predict(self, state1, state2):
         # put the state in the prediction q
-        self.prediction_q.put((self.id, state))
+        self.prediction_q.put((self.id, state1, state2))
         # wait for the prediction to come back
-        mean, log_std, value = self.wait_q.get()
-        return mean, log_std, value
+        mean1, mean2, log_std1, log_std2, value = self.wait_q.get()
+        return mean1, mean2, log_std1, log_std2, value
         #return mean, log_std, value[0]
 
     def select_action(self, mean, log_std):
@@ -113,12 +113,13 @@ class ProcessAgent(Process):
             # Yizhi edit here
             # agent 1
             obs1 = self.env.current_state1
-            action_mean1, action_log_std1, value1 = self.predict(obs1)
-            action1 = self.select_action(action_mean1, action_log_std1)
+            #action_mean1, action_log_std1, value1 = self.predict(obs1, obs2)
+            #action1 = self.select_action(action_mean1, action_log_std1)
 
             # agent 2
             obs2 = self.env.current_state2
-            action_mean2, action_log_std2, value2 = self.predict(obs2)
+            action_mean1, action_mean2, action_log_std1, action_log_std2, value = self.predict(obs1,obs2)
+            action1 = self.select_action(action_mean1, action_log_std1)
             action2 = self.select_action(action_mean2, action_log_std2)
 
             # need to modify the environment

@@ -43,19 +43,21 @@ class ThreadPredictor(Thread):
 
     def run(self):
         ids = np.zeros(Config.PREDICTION_BATCH_SIZE, dtype=np.uint16)
-        states = np.zeros((Config.PREDICTION_BATCH_SIZE,) + self.obs_shape, dtype=np.float32)
+        states1 = np.zeros((Config.PREDICTION_BATCH_SIZE,) + self.obs_shape, dtype=np.float32)
+        states2 = np.zeros((Config.PREDICTION_BATCH_SIZE,) + self.obs_shape, dtype=np.float32)
 
         while not self.exit_flag:
-            ids[0], states[0] = self.server.prediction_q.get()
+            ids[0], states1[0], states2[0] = self.server.prediction_q.get()
 
             size = 1
             while size < Config.PREDICTION_BATCH_SIZE and not self.server.prediction_q.empty():
-                ids[size], states[size] = self.server.prediction_q.get()
+                ids[size], states1[size], states2[size] = self.server.prediction_q.get()
                 size += 1
 
-            batch = states[:size]
-            means, log_stds, values = self.server.model.predict_p_and_v(batch)
+            batch1 = states1[:size]
+            batch2 = states2[:size]
+            means1,means2, log_stds1,log_stds2, values = self.server.model.predict_p_and_v(batch1,batch2)
 
             for i in range(size):
                 if ids[i] < len(self.server.agents):
-                    self.server.agents[ids[i]].wait_q.put((means[i], log_stds[i], values[i]))
+                    self.server.agents[ids[i]].wait_q.put((means1[i],means2[i], log_stds1[i],log_stds2[i], values[i]))
