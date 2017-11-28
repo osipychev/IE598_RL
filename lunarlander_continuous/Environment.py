@@ -61,19 +61,19 @@ class Environment:
     def reset(self):
         self.total_reward = 0
         # need to modify the environment
-        self.current_state1,self.current_state2 = self.game.reset()
-	#self.current_state1 = current_state[0:8]
-	#self.current_state2 = current_state[8:16]
+        observation = self.game.reset()
+        self.current_state1 = observation[0:8]
+        self.current_state2 = observation[8:16]
 
     
     def step(self, action1, action2):
         # Yizhi edit here
         # need to modify the environment
-#        print('action1 and 2 _ environment:')
-#        print(action1)
-#        print(action2)
-        self.current_state1,self.current_state2, reward1,reward2, done, _ = self.game.step(action1, action2)
-        #self.current_state1 = observation[0:8]
-        #self.current_state2 = observation[8:16]
+        action = np.array([action1,action2]).flatten()
+        observation, reward, done, _ = self.game.step(action)
+        self.current_state1 = observation[0:8]
+        self.current_state2 = observation[8:16]
+        reward1 = reward[0]
+        reward2 = reward[1]
         self.total_reward += reward1 + reward2
         return reward1,reward2, done

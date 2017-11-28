@@ -126,7 +126,6 @@ class ProcessAgent(Process):
             reward1, reward2, done = self.env.step(action1, action2)
             reward = reward1 + reward2
             reward_sum += reward
-            value = value1 + value2
             exp = Experience(obs1, obs2, action1, action2, action_mean1, action_mean2, 
                                 action_log_std1, action_log_std2, value, reward, done)
             experiences.append(exp)

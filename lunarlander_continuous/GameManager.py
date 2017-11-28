@@ -37,24 +37,20 @@ class GameManager:
         self.reset()
 
     def reset(self):
-        observation1, observation2 = self.env.reset()
-        return observation1, observation2
+        observation = self.env.reset()
+        return observation
 
-    def step(self, action1, action2):
+    def step(self, action):
         # Yizhi edit here
         self._update_display()
 
-#        print('action1 and 2 :')
-#        print(action1)
-#        print(action2)
-
         if isinstance(self.env.action_space, Box):
-          action1 = np.clip(action1, self.env.action_space.low, self.env.action_space.high)
-          action2 = np.clip(action2, self.env.action_space.low, self.env.action_space.high)
+          action[0:2] = np.clip(action[0:2], self.env.action_space.low, self.env.action_space.high)
+          action[2:4] = np.clip(action[2:4], self.env.action_space.low, self.env.action_space.high)
         # need to modify the environment
 
-        observation1, observation2, reward1, reward2, done, info = self.env.step(np.array([action1, action2]))
-        return observation1, observation2, reward1, reward2, done, info
+        observation, reward, done, info = self.env.step(action)
+        return observation, reward, done, info
 
     def _update_display(self):
         if self.display:
