@@ -94,7 +94,7 @@ class Server:
         # Yizhi edit here
         self.model.train(x1_, x2_, r_, adv_, a1_, a2_, am1_, am2_, as1_, as2_, trainer_id)
         self.training_step += 1
-        self.frame_counter += x_.shape[0]
+        self.frame_counter += x1_.shape[0]
 
         self.stats.training_count.value += 1
         self.dynamic_adjustment.temporal_training_count += 1
