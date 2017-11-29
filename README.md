@@ -6,7 +6,7 @@ See details in folder [lunarlander_continuous](https://github.com/osipychev/IE59
 ## Gathering (discrete action space)
 See details in branch [gathering](https://github.com/osipychev/IE598_RL/tree/gathering).
 
-## MARL Lunar Lander
+## MARL Lunar Lander environment
 I added GYM folder that is a clone of the original GYM with some modification.
 The simplest way to make it working, just put https://github.com/osipychev/IE598_RL/tree/master/gym/gym
 into your working folder like "workdir/gym/env".
