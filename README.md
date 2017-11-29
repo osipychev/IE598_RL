@@ -15,10 +15,8 @@ If installation to a separate conda env or virtual machine is impossible, the ch
 For that, you need to find the location of GYM that you run from and copy the swap ENV folder.
 
 ## Things that we've tried so far
-1. We have modified the original lunar lander environment in OpenAI Gym to be able to take 2 agents such that we could use it as multi-agent environment for continuous action space.
-2. The environment has been tested to be working fine.
-3. Unfortunately, we haven't successfully trained the environment with any of the following three models:
+1. We have modified the original lunar lander environment in GYM to be able to take 2 agents such that we could use it as multi-agent environment for continuous action space. The environment has been tested to be working fine.
+2. Unfortunately, we haven't successfully trained the environment with any of the following three models. The training process wourld start but the RScores wouldn't increase and sometimes froze after some certain episodes:
    * Simple modified policy gradient codes given by Professor to train multiple agents.
    * Original homework 7 codes with doubled action and oberservation spaces.
    * Modified homework 7 codes such that the each agent has its own observations, policy and actions but share the same critic.
-4. The training process wourld start but the RScores wouldn't increase and sometimes froze after some certain episodes.
