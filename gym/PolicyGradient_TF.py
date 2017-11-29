@@ -11,7 +11,6 @@ num_H1 = 128
 num_H2 = 128
 eps0 = 1e-8
 
-
 episode_limit = 10000
 
 batch_size = 1 # every how many episodes to do a param update?
@@ -51,7 +50,7 @@ def discount_rewards(r):
 
 #inputs
 #x0 = tf.placeholder(tf.float32, shape=[None, 80, 80,1])
-x0 = tf.placeholder(tf.float32, shape=[None, 16])
+x0 = tf.placeholder(tf.float32, shape=[None, 3])
 #rewards
 R = tf.placeholder(tf.float32, shape=[None])
 #actions
@@ -63,9 +62,9 @@ A = tf.placeholder(tf.int32, shape=[None])
 #W4 = tf.Variable(tf.random_uniform([5*5*num_channels2,num_H1], -1.0, 1.0)/np.sqrt(5*5*num_channels2))
 #W5 = tf.Variable(tf.random_uniform([num_H1, num_H2], -1.0, 1.0)/np.sqrt(num_H1))
 #W6 = tf.Variable(tf.random_uniform([num_H2, 2], -1.0, 1.0)/np.sqrt(num_H2))
-W1 = tf.Variable(tf.random_uniform([16, num_H1], -1.0, 1.0)/np.sqrt(16))
+W1 = tf.Variable(tf.random_uniform([3, num_H1], -1.0, 1.0)/np.sqrt(16))
 W2 = tf.Variable(tf.random_uniform([num_H1, num_H2], -1.0, 1.0)/np.sqrt(64))
-W3 = tf.Variable(tf.random_uniform([num_H2, 16], -1.0, 1.0)/np.sqrt(64))
+W3 = tf.Variable(tf.random_uniform([num_H2, 3], -1.0, 1.0)/np.sqrt(64))
 
 
 #C1 =  tf.nn.relu( tf.nn.conv2d(x0, W1, strides = [1,4,4,1], padding = "SAME")    )
@@ -99,7 +98,7 @@ session.run(init)
 
 
 
-env = gym.make("LunarLanderMarl-v2")
+env = gym.make("Pendulum-v0")
 observation = env.reset()
 prev_x = None # used in computing the difference frame
 xs,As,drs = [],[],[]
@@ -127,14 +126,13 @@ while (episode_number < episode_limit) :
 #  C3_np = session.run(C3, feed_dict={x0:x} )
   
 #  aprob = session.run(p, feed_dict={x0: x} )
-  x =  np.zeros( (1, 16) )
-  x[0,:] = observation[:]
+  x =  np.array(observation).flatten()
   aprob = session.run(p, feed_dict={x0: x} )
   
   cum_sum = np.cumsum(aprob)
   r = np.random.uniform()
   action = 0
-  for i in range(0,len(cum_sum)):
+  for i in range(0,16):
     action = i
     if (r < cum_sum[i]): break
 

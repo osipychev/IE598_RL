@@ -66,8 +66,6 @@ class ContactDetector(contactListener):
             self.env.game_over_a2 = True
         if (self.env.game_over_a1 and self.env.game_over_a2):
             self.env.game_over = True
-            self.env.game_over_a1 = False
-            self.env.game_over_a2 = False
         for i in range(2):
             if self.env.legs_a1[i] in [contact.fixtureA.body, contact.fixtureB.body]:
                 self.env.legs_a1[i].ground_contact = True
@@ -100,14 +98,14 @@ class LunarLanderMarl(gym.Env):
 
         self.prev_reward = None
 
-        high = np.array([np.inf]*16)  # useful range is -1 .. +1, but spikes can be higher 
+        high = np.array([np.inf]*16)  #16 states from 2 landers. useful range is -1 .. +1, but spikes can be higher 
         self.observation_space = spaces.Box(-high, high)
 
         if self.continuous:
             # Action is two floats [main engine, left-right engines].
             # Main engine: -1..0 off, 0..+1 throttle from 50% to 100% power. Engine can't work with less than 50% power.
             # Left-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off
-            self.action_space = spaces.Box(-1, +1, (4,)) #two agents 2 actions each //spaces.Box(-1, +1, (2,)) 
+            self.action_space = spaces.Box(-1, +1, (4,)) #2 agents 2 actions each //spaces.Box(-1, +1, (2,)) 
         else:
             # Nop, fire left engine, main engine, right engine
             self.action_space = spaces.Discrete(16) # //spaces.Discrete(4)
@@ -179,7 +177,7 @@ class LunarLanderMarl(gym.Env):
         ## AGENT 1 
         initial_y = VIEWPORT_H/SCALE
         self.lander_a1 = self.world.CreateDynamicBody(
-            position = (VIEWPORT_W/SCALE/2, initial_y),
+            position = (0.2*VIEWPORT_W/SCALE, initial_y),
             angle=0.0,
             fixtures = fixtureDef(
                 shape=polygonShape(vertices=[ (x/SCALE,y/SCALE) for x,y in LANDER_POLY ]),
@@ -199,7 +197,7 @@ class LunarLanderMarl(gym.Env):
         self.legs_a1 = []
         for i in [-1,+1]:
             leg_a1 = self.world.CreateDynamicBody(
-                position = (VIEWPORT_W/SCALE/2 - i*LEG_AWAY/SCALE, initial_y),
+                position = (0.2*VIEWPORT_W/SCALE - i*LEG_AWAY/SCALE, initial_y),
                 angle = (i*0.05),
                 fixtures = fixtureDef(
                     shape=polygonShape(box=(LEG_W/SCALE, LEG_H/SCALE)),
@@ -231,9 +229,8 @@ class LunarLanderMarl(gym.Env):
             self.legs_a1.append(leg_a1)
 
         ## AGENT 2 
-        initial_y = VIEWPORT_H/SCALE
         self.lander_a2 = self.world.CreateDynamicBody(
-            position = (VIEWPORT_W/SCALE/2, initial_y),
+            position = (0.8*VIEWPORT_W/SCALE, initial_y),
             angle=0.0,
             fixtures = fixtureDef(
                 shape=polygonShape(vertices=[ (x/SCALE,y/SCALE) for x,y in LANDER_POLY ]),
@@ -253,7 +250,7 @@ class LunarLanderMarl(gym.Env):
         self.legs_a2 = []
         for i in [-1,+1]:
             leg_a2 = self.world.CreateDynamicBody(
-                position = (VIEWPORT_W/SCALE/2 - i*LEG_AWAY/SCALE, initial_y),
+                position = (0.8*VIEWPORT_W/SCALE - i*LEG_AWAY/SCALE, initial_y),
                 angle = (i*0.05),
                 fixtures = fixtureDef(
                     shape=polygonShape(box=(LEG_W/SCALE, LEG_H/SCALE)),
@@ -309,8 +306,6 @@ class LunarLanderMarl(gym.Env):
         while self.particles and (all or self.particles[0].ttl<0):
             self.world.DestroyBody(self.particles.pop(0))
 
-
-
     def _step(self, action):
         assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
 
@@ -318,8 +313,8 @@ class LunarLanderMarl(gym.Env):
             self.lander_a1 = self._agent_step(self.lander_a1,[action[0],action[1]])
             self.lander_a2 = self._agent_step(self.lander_a2,[action[2],action[3]])
         else:
-            self.lander_a1 = self._agent_step(self.lander_a1,action/4)
-            self.lander_a2 = self._agent_step(self.lander_a2,action%4)
+            self.lander_a1 = self._agent_step(self.lander_a1,action%4)
+            self.lander_a2 = self._agent_step(self.lander_a2,action/4)
             #print('agent1: %d, agent2: %d'%(action/4,action%4))
         
         self.world.Step(1.0/FPS, 6*30, 2*30)
@@ -327,7 +322,6 @@ class LunarLanderMarl(gym.Env):
         vel1 = self.lander_a1.linearVelocity
         pos2 = self.lander_a2.position
         vel2 = self.lander_a2.linearVelocity
-
 
         state = [
             (pos1.x - VIEWPORT_W/SCALE/2) / (VIEWPORT_W/SCALE/2),
@@ -369,10 +363,10 @@ class LunarLanderMarl(gym.Env):
 #        reward -= s_power*0.03
 
         done = False
-        if self.game_over or abs(state[0]) >= 1.0:
+        if (self.game_over or abs(state[0]) >= 1.0 or abs(state[8]) >= 1.0):
             done   = True
             reward = -100
-        if not self.lander_a1.awake:
+        if not (self.lander_a1.awake and self.lander_a2.awake):
             done   = True
             reward = +100
         return np.array(state), reward, done, {}
