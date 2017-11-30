@@ -95,7 +95,7 @@ class NetworkVP:
         self.cn2 = self.dense_layer(self.cn1, 64, 'dens2c', func=tf.nn.tanh)
         self.values = self.dense_layer(self.cn2, 1, 'dens3c', func=tf.nn.tanh)
         
-        #self.means = tf.concat([self.a1means,self.a2means],1)   
+        self.means = tf.concat([self.a1means,self.a2means],1)   
         
         self.logli1 = self.loglikelihood(self.actions[:,0:2], self.a1means, self.log_stds[:,0:2])
         self.logli2 = self.loglikelihood(self.actions[:,2:4], self.a2means, self.log_stds[:,0:2])
@@ -209,8 +209,7 @@ class NetworkVP:
         return step
 
     def predict_p_and_v(self, x):
-        a1means, a2means, log_stds, values = self.sess.run([self.a1means, self.a2means, self.log_stds, self.values], feed_dict={self.obs: x})
-        means = tf.concat([a1means,a2means],1)
+        means, log_stds, values = self.sess.run([self.means, self.log_stds, self.values], feed_dict={self.obs: x})
         return means, log_stds, values.reshape(-1)
     
     def train(self, x, y_r, adv, a, a_m, a_s, trainer_id):
