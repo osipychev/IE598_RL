@@ -46,7 +46,7 @@ class ThreadTrainer(Thread):
                 # Yizhi edit here
                 x1_, x2_, r_, adv_, a1_, a2_, am1_, am2_, as1_, as2_ = self.server.training_q.get()
                 if batch_size == 0:
-                    x1__ = x1_; x2__ = x2_, r__ = r_; adv__ = adv_; a1__ = a1_; a2__ = a2_
+                    x1__ = x1_; x2__ = x2_; r__ = r_; adv__ = adv_; a1__ = a1_; a2__ = a2_
                     am1__ = am1_; am2__ = am2_; as1__ = as1_; as2__ = as2_ 
                 else:
                     x1__ = np.concatenate((x1__, x1_))
