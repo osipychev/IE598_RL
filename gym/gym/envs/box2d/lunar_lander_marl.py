@@ -64,8 +64,7 @@ class ContactDetector(contactListener):
             self.env.game_over_a1 = True
         if (self.env.lander_a2==contact.fixtureA.body or self.env.lander_a2==contact.fixtureB.body):
             self.env.game_over_a2 = True
-        if (self.env.game_over_a1 and self.env.game_over_a2):
-            self.env.game_over = True
+    
         for i in range(2):
             if self.env.legs_a1[i] in [contact.fixtureA.body, contact.fixtureB.body]:
                 self.env.legs_a1[i].ground_contact = True
@@ -138,7 +137,6 @@ class LunarLanderMarl(gym.Env):
         self._destroy()
         self.world.contactListener_keepref = ContactDetector(self)
         self.world.contactListener = self.world.contactListener_keepref
-        self.game_over = False
         self.game_over_a1 = False
         self.game_over_a2 = False
         self.prev_shaping = None
@@ -176,8 +174,9 @@ class LunarLanderMarl(gym.Env):
 
         ## AGENT 1 
         initial_y = VIEWPORT_H/SCALE
+        initial_x = np.random.uniform(0.1,0.9)
         self.lander_a1 = self.world.CreateDynamicBody(
-            position = (0.2*VIEWPORT_W/SCALE, initial_y),
+            position = (initial_x*VIEWPORT_W/SCALE, initial_y),
             angle=0.0,
             fixtures = fixtureDef(
                 shape=polygonShape(vertices=[ (x/SCALE,y/SCALE) for x,y in LANDER_POLY ]),
@@ -197,7 +196,7 @@ class LunarLanderMarl(gym.Env):
         self.legs_a1 = []
         for i in [-1,+1]:
             leg_a1 = self.world.CreateDynamicBody(
-                position = (0.2*VIEWPORT_W/SCALE - i*LEG_AWAY/SCALE, initial_y),
+                position = (initial_x*VIEWPORT_W/SCALE - i*LEG_AWAY/SCALE, initial_y),
                 angle = (i*0.05),
                 fixtures = fixtureDef(
                     shape=polygonShape(box=(LEG_W/SCALE, LEG_H/SCALE)),
@@ -229,8 +228,9 @@ class LunarLanderMarl(gym.Env):
             self.legs_a1.append(leg_a1)
 
         ## AGENT 2 
+        initial_x = np.random.uniform(0.1,0.9)
         self.lander_a2 = self.world.CreateDynamicBody(
-            position = (0.8*VIEWPORT_W/SCALE, initial_y),
+            position = (initial_x*VIEWPORT_W/SCALE, initial_y),
             angle=0.0,
             fixtures = fixtureDef(
                 shape=polygonShape(vertices=[ (x/SCALE,y/SCALE) for x,y in LANDER_POLY ]),
@@ -250,7 +250,7 @@ class LunarLanderMarl(gym.Env):
         self.legs_a2 = []
         for i in [-1,+1]:
             leg_a2 = self.world.CreateDynamicBody(
-                position = (0.8*VIEWPORT_W/SCALE - i*LEG_AWAY/SCALE, initial_y),
+                position = (initial_x*VIEWPORT_W/SCALE - i*LEG_AWAY/SCALE, initial_y),
                 angle = (i*0.05),
                 fixtures = fixtureDef(
                     shape=polygonShape(box=(LEG_W/SCALE, LEG_H/SCALE)),
@@ -363,7 +363,7 @@ class LunarLanderMarl(gym.Env):
 #        reward -= s_power*0.03
 
         done = False
-        if (self.game_over or abs(state[0]) >= 1.0 or abs(state[8]) >= 1.0):
+        if ((self.game_over_a1 and self.game_over_a2) or (abs(state[0]) >= 1.0 and abs(state[8]) >= 1.0)):
             done   = True
             reward = -100
         if not (self.lander_a1.awake and self.lander_a2.awake):
