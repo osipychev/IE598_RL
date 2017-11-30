@@ -186,7 +186,7 @@ class LunarLanderMarl(gym.Env):
                 maskBits=0x001,  # collide only with ground
                 restitution=0.0) # 0.99 bouncy
                 )
-        self.lander_a1.color1 = (0.4,0.5,0.9)
+        self.lander_a1.color1 = (0.9,0.5,0.4)
         self.lander_a1.color2 = (0.3,0.3,0.5)
         self.lander_a1.ApplyForceToCenter( (
             self.np_random.uniform(-INITIAL_RANDOM, INITIAL_RANDOM),
@@ -206,7 +206,7 @@ class LunarLanderMarl(gym.Env):
                     maskBits=0x001)
                 )
             leg_a1.ground_contact = False
-            leg_a1.color1 = (0.5,0.4,0.9)
+            leg_a1.color1 = (0.9,0.5,0.4)
             leg_a1.color2 = (0.3,0.3,0.5)
             rjd = revoluteJointDef(
                 bodyA=self.lander_a1,
@@ -363,7 +363,7 @@ class LunarLanderMarl(gym.Env):
 #        reward -= s_power*0.03
 
         done = False
-        if ((self.game_over_a1 and self.game_over_a2) or (abs(state[0]) >= 1.0 and abs(state[8]) >= 1.0)):
+        if ((self.game_over_a1 or abs(state[0]) >= 1.0) and (self.game_over_a2 or abs(state[8]) >= 1.0)):
             done   = True
             reward = -100
         if not (self.lander_a1.awake and self.lander_a2.awake):
