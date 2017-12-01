@@ -1,0 +1,16 @@
+----------------------------------------
+Begin Torque Prologue on nid25336
+at Thu Nov 30 23:40:35 CST 2017
+Job Id:			7889125.bw
+Username:		tra041
+Group:			TRAIN_balq
+Job name:		deniso2_project
+Requested resources:	neednodes=1:ppn=16:xk,nodes=1:ppn=16:xk,walltime=12:00:00
+Queue:			normal
+Account:		balq
+End Torque Prologue:  0.136 elapsed
+----------------------------------------
+
+
+
+
