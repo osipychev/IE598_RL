@@ -6,6 +6,8 @@
 \usepackage{hyperref}
 \usepackage{indentfirst}
 \usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{indentfirst}
 
 \title{Multi-Agent Reinforcement Learning\\
 	\large{ Course Project Proposal}}
@@ -79,10 +81,12 @@ Our model is based on GA3C by Babaeizadeh {\it et. al.}\cite{babaeizadeh2016} (h
 to local information\cite{lowe2017}.
 
 The policy gradient for each agent is described in Eq. \ref{grad}: Each agent has its own policy $\pi_i(a_{t, i}|s_t, \theta)$ with regard of its own action $a_{t, i}$ and current state $s_t$ but the advantage function $A(s_t, a_{t, 1}, ..., a_{t, N}$ is shared by all agents. The advantage function is estimated by the temporal difference function $\delta_t$ (Eq. \ref{advantage}).
+
 \begin{equation}
 \nabla_{\theta}\eta_i(\pi_{\theta}) = E_{\tau}[\sum^{T-1}_{t=0}\nabla_{\theta}\log\pi_i(a_{t, i}|s_t, \theta)A(s_t, a_{t, 1}, ..., a_{t, N}) + \beta\sum^{T-1}_{t=0}\nabla_{\theta}H(s_t|\theta)]
 \label{grad}
 \end{equation}
+
 \begin{equation}
 \hat{A}(s_t, a_{t, 1}, ..., a_{t, N}) = \sum^{\infty}_{t=0} (\gamma \lambda)^l \delta_{t+l}
 \label{advantage}
