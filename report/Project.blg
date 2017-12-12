@@ -1,0 +1,10 @@
+This is BibTeX, Version 0.99dThe top-level auxiliary file: Project.aux
+The style file: abbrv.bst
+Database file #1: ref.bib
+Repeated entry---line 45 of file ref.bib
+ : @article{lowe2017
+ :                  ,
+I'm skipping whatever remains of this entry
+Warning--to sort, need author or key in pytorch
+Warning--to sort, need author or key in deepmind
+(There was 1 error message)

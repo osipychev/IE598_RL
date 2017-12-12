@@ -77,7 +77,7 @@ The reward system has been modified several times during the main set of experim
 
 \section{Models}
 
-Our model is based on GA3C by Babaeizadeh {\it et. al.}\cite{babaeizadeh2016} (hybrid version of Asynchronous Advantage Actor-critic algorithm)\footnote{Original code can be found at \href{https://github.com/NVlabs/GA3C}{https://github.com/NVlabs/GA3C}} and adopts the idea of multi-agent decentralized actor, centralized critic approach where the critic is augmented with extra information about the policies of other agents, while the actor only has access
+Our model is based on GA3C by Babaeizadeh {\it et. al.}\cite{babaeizadeh2016} (hybrid GPU/CPU version of Asynchronous Advantage Actor-Critic algorithm)\footnote{Original code can be found at \href{https://github.com/NVlabs/GA3C}{https://github.com/NVlabs/GA3C}} and adopts the idea of multi-agent decentralized actor, centralized critic approach where the critic is augmented with extra information about the policies of other agents, while the actor only has access
 to local information\cite{lowe2017}.
 
 The policy gradient for each agent is described in Eq. \ref{grad}: Each agent has its own policy $\pi_i(a_{t, i}|s_t, \theta)$ with regard of its own action $a_{t, i}$ and current state $s_t$ but the advantage function $A(s_t, a_{t, 1}, ..., a_{t, N}$ is shared by all agents. The advantage function is estimated by the temporal difference function $\delta_t$ (Eq. \ref{advantage}).

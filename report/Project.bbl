@@ -1,0 +1,37 @@
+\begin{thebibliography}{1}
+
+\bibitem{pytorch}
+A pytorch implementation of maddpg.
+\newblock \url{https://github.com/xuehy/pytorch-maddpg}.
+
+\bibitem{deepmind}
+Understanding agent cooperation.
+\newblock \url{https://deepmind.com/blog/understanding-agent-cooperation/}.
+
+\bibitem{babaeizadeh2016}
+M.~Babaeizadeh, I.~Frosio, S.~Tyree, J.~Clemons, and J.~Kautz.
+\newblock {GA3C:} gpu-based {A3C} for deep reinforcement learning.
+\newblock {\em CoRR}, abs/1611.06256, 2016.
+
+\bibitem{1606.01540}
+G.~Brockman, V.~Cheung, L.~Pettersson, J.~Schneider, J.~Schulman, J.~Tang, and
+  W.~Zaremba.
+\newblock Openai gym, 2016.
+
+\bibitem{Buşoniu2008}
+L.~Buşoniu, R.~Babu$\hat{s}$ka, and B.~D. Schutter.
+\newblock A comprehensive survey of multiagent reinforcement learning.
+\newblock {\em IEEE}, 38, 2008.
+
+\bibitem{lowe2017}
+R.~Lowe, Y.~Wu, A.~Tamar, J.~Harb, P.~Abbeel, and I.~Mordatch.
+\newblock Multi-agent actor-critic for mixed cooperative-competitive
+  environments.
+\newblock {\em CoRR}, abs/1706.02275, 2017.
+
+\bibitem{nowe2012game}
+A.~Now{\'e}, P.~Vrancx, and Y.-M. De~Hauwere.
+\newblock Game theory and multi-agent reinforcement learning.
+\newblock In {\em Reinforcement Learning}, pages 441--470. Springer, 2012.
+
+\end{thebibliography}
